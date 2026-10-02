@@ -93,7 +93,7 @@ Dept  Notif      Reports
 | `employee`     | Employee CRUD, profile management |
 | `department`   | Department CRUD, manager assignment |
 | `attendance`   | Mark attendance, fetch history, calculate present days |
-| `leave`        | Apply, approve, reject, cancel leave requests |
+| `leave`        | Apply, approve, reject, cancel leave requests; on approval auto-creates attendance records with status ON_LEAVE for each date in range |
 | `leave-balance`| Track and update leave quotas per employee per type |
 | `notification` | In-app notifications for approval/rejection events |
 | `admin`        | Admin-only operations, user role management |
@@ -111,6 +111,14 @@ users
   ├── email
   ├── password_hash
   ├── role (EMPLOYEE | MANAGER | HR_ADMIN)
+  └── created_at
+
+refresh_tokens
+  ├── id (PK)
+  ├── user_id (FK → users.id)
+  ├── token_hash
+  ├── expires_at
+  ├── revoked (boolean)
   └── created_at
 
 departments
@@ -157,7 +165,7 @@ leave_requests
   ├── to_date
   ├── reason
   ├── status (PENDING | APPROVED | REJECTED | CANCELLED)
-  ├── reviewed_by (FK → employees.id)
+  ├── reviewed_by (FK → users.id)   ← service layer must verify reviewer role is MANAGER or HR_ADMIN
   └── reviewed_at
 
 notifications
@@ -230,11 +238,17 @@ YOUR APPLICATION CODE
         │
         ▼
   Application Server
-  ┌─────────────────┐
-  │  Spring Boot    │  ← Docker container
-  │  React (built)  │  ← served via Nginx
-  │  MySQL          │  ← Docker container
-  └─────────────────┘
+  ┌─────────────────────────────────┐
+  │  spring-boot-app  (container)   │  ← listens on :8080
+  │  react-app        (container)   │  ← static build served on :3000
+  │  mysql-db         (container)   │  ← listens on :3306
+  │  nginx            (container)   │  ← :80/:443 → routes /api → :8080, / → :3000
+  └─────────────────────────────────┘
+
+> **Serving strategy:** React is built into its own container (Node build → Nginx serve).
+> A single top-level Nginx container acts as reverse proxy.
+> `/api/*` routes to Spring Boot; everything else routes to the React container.
+> This is reflected in `docker-compose.yml` with four named services.
 ```
 
 ### Pipeline Stages
@@ -243,11 +257,12 @@ YOUR APPLICATION CODE
 |-------------|------------|---------|
 | Source      | Git/GitLab | Version control, branch strategy, MRs |
 | Build       | Maven      | Compile Spring Boot, run unit tests |
-| Test        | JUnit + Karate | Unit tests (backend), API contract tests |
+| Migrate     | Flyway     | Apply DB migrations before tests run |
+| Test        | JUnit + Karate | Unit tests (backend) + API contract tests written alongside each API |
 | Code Quality| SonarQube  | Static analysis, coverage thresholds |
 | Package     | Docker     | Build image for backend + frontend |
 | Deploy      | Ansible    | Push containers to application server |
-| Serve       | Nginx      | Reverse proxy, route `/api` → Spring Boot, `/` → React |
+| Serve       | Nginx      | Reverse proxy, route `/api` → Spring Boot, `/` → React static build |
 
 ---
 
@@ -307,14 +322,23 @@ employee-leave-management/
 | Phase | Focus |
 |-------|-------|
 | 1 | UI/UX wireframes and screen specifications |
-| 2 | Database design and migrations |
-| 3 | Spring Boot backend + REST APIs |
+| 2 | Database design and Flyway migrations |
+| 3 | Spring Boot backend + REST APIs + Karate API contract tests (written alongside each endpoint) |
 | 4 | React frontend |
-| 5 | Authentication and role-based access (JWT) |
-| 6 | Leave & attendance workflow (full end-to-end) |
+| 5 | Authentication and role-based access (JWT + refresh token table) |
+| 6 | Leave & attendance workflow — including auto-sync of attendance records on leave approval |
 | 7 | Git branching strategy + GitLab setup |
-| 8 | Jenkins CI/CD pipeline |
-| 9 | JUnit unit tests + Karate API tests |
-| 10 | Docker containerization + Ansible deployment |
+| 8 | Jenkins CI/CD pipeline (includes Flyway migrate stage) |
+| 9 | JUnit unit tests (fill coverage gaps) |
+| 10 | Docker containerization (4 containers) + Ansible deployment |
 
-> ⚠️ **Correction from original plan:** Phase 5 (Auth) should be implemented at the start of Phase 3, not after the frontend. All API endpoints require role guards from day one.
+## 10. Key Design Decisions & Rules
+
+| Decision | Rule |
+|----------|------|
+| JWT refresh tokens | Stored in `refresh_tokens` table with expiry and revocation flag. Never stored client-side in localStorage — use HttpOnly cookies. |
+| Leave approval role guard | `reviewed_by` records the approver's `user_id`. Service layer checks `users.role IN (MANAGER, HR_ADMIN)` before allowing approve/reject. |
+| Attendance ↔ Leave sync | On leave approval, the `leave` service iterates each date in `[from_date, to_date]` and upserts an `attendance` record with `status = ON_LEAVE`. |
+| Karate tests timing | Written in Phase 3 alongside each endpoint, not after. Each module's Karate feature file lives in `src/test/` next to its JUnit tests. |
+| Container architecture | Four containers: `nginx`, `spring-boot`, `react`, `mysql`. Nginx is the single entry point. React is a static build served by its own Nginx instance inside the react container. |
+| Flyway migrations | All schema changes go through Flyway scripts in `db/migration/`. Jenkins runs `flyway migrate` before tests in the pipeline. |
