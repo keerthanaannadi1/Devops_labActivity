@@ -1,0 +1,31 @@
+# Java / Maven
+target/
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Karate
+karate-reports/
+karate.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local secrets and cluster state — never commit
+*.local
+.env
+kubeconfig

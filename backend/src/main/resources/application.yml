@@ -1,0 +1,52 @@
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: elms-api
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:elms}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USER:app}
+    password: ${DB_PASSWORD:app}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+      continue-on-error: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+elms:
+  leave:
+    quota:
+      CASUAL: 12
+      SICK: 10
+      EARNED: 15
+      COMP_OFF: 5
+
+logging:
+  level:
+    com.elms: INFO
