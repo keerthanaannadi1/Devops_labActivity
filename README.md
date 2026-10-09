@@ -4,13 +4,15 @@
 ---
 
 ## 👥 Team
-**Batch No: 26 | Dept of CSE, BVRIT Hyderabad**
+
  Name | Roll No |
 |------|---------|
 | A. Keerthana | 24WH1A05U5 |
-| M. Srividya | 24WH1A05T5 |
+| G. Yasasvi | 24WH1A05V9 |
+| T. Tejaswini | 24WH1A05R9 |
+| P. Diya Reddy | 24WH1A05U4|
+| A. Vamshika | 24WH1A05W4|
 
-**Guided by:** Ms. Y. Divya, Assistant Professor, Dept of CSE
 
 ---
 
