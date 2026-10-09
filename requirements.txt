@@ -1,0 +1,26 @@
+# Document Parsing
+pymupdf
+pdfplumber
+pytesseract
+pillow
+
+# LangChain & Groq
+langchain>=0.1.0
+langchain-core
+langchain-groq
+
+# BM25 (Lightweight Keyword Search)
+rank-bm25
+
+# LLM Output Parsing
+json-repair
+
+# Flowchart
+networkx
+
+# Streamlit
+streamlit
+
+# Utilities
+python-dotenv
+numpy
