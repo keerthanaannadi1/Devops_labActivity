@@ -16,7 +16,7 @@ load_dotenv()
 class FlowchartGenerator:
     def __init__(
         self,
-        model_name: str = "llama3-8b-8192",
+        model_name: str = "openai/gpt-oss-20b",
         temperature: float = 0.2
     ):
         api_key = os.getenv("GROQ_API_KEY")

@@ -13,7 +13,7 @@ load_dotenv()
 class RAGChain:
     def __init__(
         self,
-        model_name: str = "llama3-8b-8192",
+        model_name: str = "openai/gpt-oss-20b",
         temperature: float = 0.3,
         max_tokens: int = 1024
     ):
