@@ -164,6 +164,20 @@ Apply the edit and return the updated JSON in the same format. Return ONLY valid
         
         return G
     
+    def _sanitize_label(self, label: str) -> str:
+        """Remove or replace characters that break Mermaid syntax."""
+        label = label.replace('"', "'")
+        label = label.replace('(', '[')
+        label = label.replace(')', ']')
+        label = label.replace('{', '[')
+        label = label.replace('}', ']')
+        label = label.replace('&', 'and')
+        label = label.replace('<', 'less than')
+        label = label.replace('>', 'greater than')
+        if len(label) > 60:
+            label = label[:57] + "..."
+        return label
+
     def to_mermaid(self, flowchart_data: Dict) -> str:
         G = self.create_networkx_graph(flowchart_data)
         
@@ -171,22 +185,21 @@ Apply the edit and return the updated JSON in the same format. Return ONLY valid
         
         for node, data in G.nodes(data=True):
             node_type = data.get("step_type", "process")
-            label = data.get("label", node)
+            label = self._sanitize_label(data.get("label", node))
             
-            shape = self._get_mermaid_shape(node_type)
             if node_type in ["start", "end"]:
                 lines.append(f'    {node}("{label}")')
             elif node_type == "decision":
-                lines.append(f'    {node}{{{label}}}')
+                lines.append(f'    {node}{{"{label}"}}')
             elif node_type == "input":
-                lines.append(f'    {node}[/{label}/]')
+                lines.append(f'    {node}[/"{label}"/]')
             else:
                 lines.append(f'    {node}["{label}"]')
         
         for u, v, data in G.edges(data=True):
-            label = data.get("label", "")
-            if label:
-                lines.append(f'    {u} -- "{label}" --> {v}')
+            edge_label = self._sanitize_label(data.get("label", ""))
+            if edge_label:
+                lines.append(f'    {u} -- "{edge_label}" --> {v}')
             else:
                 lines.append(f'    {u} --> {v}')
         
