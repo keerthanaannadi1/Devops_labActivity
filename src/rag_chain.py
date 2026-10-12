@@ -13,7 +13,7 @@ load_dotenv()
 class RAGChain:
     def __init__(
         self,
-        model_name: str = "llama-3.1-8b-instant",
+        model_name: str = "llama3-8b-8192",
         temperature: float = 0.3,
         max_tokens: int = 1024
     ):
